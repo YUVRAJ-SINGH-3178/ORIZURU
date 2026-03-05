@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     Brain,
     ListFilter,
@@ -53,7 +53,7 @@ export const GENRE_OPTIONS = [
 /**
  * Initial view to choose recommendation style
  */
-export const ModeSelector = ({ onSelectMode }) => (
+export const ModeSelector = ({ onSelectMode, userName }) => (
     <div className="min-h-screen w-full flex items-center justify-center bg-transparent p-6">
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -61,7 +61,7 @@ export const ModeSelector = ({ onSelectMode }) => (
             className="max-w-4xl w-full text-center"
         >
             <h1 className="text-4xl md:text-6xl font-black italic uppercase mb-4">
-                How Would You Like to Discover?
+                Hey {userName}, How Would You Like to Discover?
             </h1>
             <p className="text-white/40 text-lg mb-12">
                 Choose how you want us to find your perfect watch
@@ -423,3 +423,54 @@ export const Quiz = ({ onComplete, onSkip, onBack }) => {
         </div>
     );
 };
+/**
+ * Main wrapper for Recommendation Method selection
+ */
+const RecommendationModes = ({ onModeSelect, onSkip, userName, allMovies }) => {
+    const [activeView, setActiveView] = useState("selector");
+
+    const handleBack = () => setActiveView("selector");
+
+    return (
+        <AnimatePresence mode="wait">
+            {activeView === "selector" && (
+                <ModeSelector
+                    key="selector"
+                    onSelectMode={(mode) => {
+                        if (mode === "skip") onSkip();
+                        else setActiveView(mode);
+                    }}
+                    userName={userName}
+                />
+            )}
+
+            {activeView === "quiz" && (
+                <Quiz
+                    key="quiz"
+                    onBack={handleBack}
+                    onSkip={onSkip}
+                    onComplete={(res) => onModeSelect("quiz", res.data)}
+                />
+            )}
+
+            {activeView === "genre" && (
+                <GenrePicker
+                    key="genre"
+                    onBack={handleBack}
+                    onComplete={(genres) => onModeSelect("genre", genres)}
+                />
+            )}
+
+            {activeView === "similar" && (
+                <FindSimilar
+                    key="similar"
+                    allMovies={allMovies}
+                    onBack={handleBack}
+                    onComplete={(source) => onModeSelect("similar", source)}
+                />
+            )}
+        </AnimatePresence>
+    );
+};
+
+export default RecommendationModes;

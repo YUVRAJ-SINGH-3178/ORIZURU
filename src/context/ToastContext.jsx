@@ -7,16 +7,18 @@ const ToastContext = createContext();
 export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
 
-    const addToast = (message, type = "info", duration = 3000) => {
+    const addToast = React.useCallback((message, type = "info", duration = 3000) => {
         const id = Date.now();
         setToasts((prev) => [...prev, { id, message, type }]);
         setTimeout(() => {
             setToasts((prev) => prev.filter((t) => t.id !== id));
         }, duration);
-    };
+    }, []);
+
+    const contextValue = React.useMemo(() => ({ addToast }), [addToast]);
 
     return (
-        <ToastContext.Provider value={{ addToast }}>
+        <ToastContext.Provider value={contextValue}>
             {children}
             <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-3">
                 <AnimatePresence>
@@ -27,12 +29,12 @@ export const ToastProvider = ({ children }) => {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -20, scale: 0.9 }}
                             className={`px-5 py-4 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-3 min-w-[280px] ${toast.type === "success"
-                                ? "bg-green-500/90"
+                                ? "bg-green-500/90 text-white"
                                 : toast.type === "error"
-                                    ? "bg-red-500/90"
+                                    ? "bg-red-500/90 text-white"
                                     : toast.type === "warning"
-                                        ? "bg-yellow-500/90"
-                                        : "bg-white/10 border border-white/20"
+                                        ? "bg-yellow-500/90 text-white"
+                                        : "bg-white/10 border border-white/20 text-white"
                                 }`}
                         >
                             {toast.type === "success" && <CheckCircle size={20} />}

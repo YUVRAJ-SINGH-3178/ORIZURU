@@ -39,6 +39,11 @@ const MovieCard = ({
                 className="group relative cursor-pointer flex flex-col h-full bg-black border-2 border-lime-500/20 hover:border-lime-400 hover:shadow-[0_0_20px_rgba(183,255,60,0.4)] transition-all overflow-hidden rounded-sm"
             >
                 <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+                    {movie.isGem && (
+                        <span className="px-2 py-1 bg-cyan-400 text-black text-[9px] font-black tracking-widest uppercase animate-pulse">
+                            💎 GEM
+                        </span>
+                    )}
                     {movie.contentType && movie.contentType !== "movie" && (
                         <span className="px-2 py-1 bg-lime-500 text-black text-[9px] font-bold tracking-widest uppercase">
                             {movie.contentType === "anime" ? "ANIME" : "SERIES"}
@@ -113,6 +118,11 @@ const MovieCard = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
                 <div className="absolute inset-0 p-6 flex flex-col justify-end">
+                    {movie.isGem && (
+                        <span className="inline-block text-black bg-yellow-500 px-1 py-0.5 self-start text-xs font-black uppercase tracking-widest mb-1 shadow-md animate-pulse">
+                            💎 GEM
+                        </span>
+                    )}
                     {showMatchScore && movie.matchScore && (
                         <span className="inline-block text-black bg-yellow-500 px-1 py-0.5 self-start text-xs font-bold uppercase tracking-widest mb-2 shadow-md">
                             MATCH: {movie.displayMatch || Math.round(movie.matchScore * 100)}%
@@ -122,7 +132,7 @@ const MovieCard = ({
                     <div className="text-yellow-500/70 text-[11px] font-medium uppercase tracking-widest flex items-center gap-2 mt-1">
                         <span>{movie.year}</span>
                         <span>|</span>
-                        <span>{movie.genres[0]}</span>
+                        <span>{movie.genres?.[0] || ""}</span>
                         <span>|</span>
                         <div className="flex items-center gap-1">
                             <Star size={10} className="fill-yellow-500/70" /> {movie.imdb}
@@ -154,6 +164,11 @@ const MovieCard = ({
 
             <div className="absolute top-4 md:top-6 inset-x-4 md:inset-x-6 flex justify-between items-start z-20">
                 <div className="flex flex-col gap-2">
+                    {movie.isGem && (
+                        <span className="self-start px-2 py-1 bg-orange-500 text-white text-[10px] font-black tracking-widest rounded-full shadow-lg shadow-orange-500/30 animate-pulse">
+                            💎 GEM
+                        </span>
+                    )}
                     {movie.contentType && movie.contentType !== "movie" && (
                         <span className="self-start px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-xl shadow-xl border border-white/10 bg-white/5 text-white/90">
                             {movie.contentType === "anime" ? "🎌 Anime" : "📺 Series"}
@@ -183,7 +198,9 @@ const MovieCard = ({
                 <h3 className="text-lg md:text-xl font-black italic uppercase leading-tight mb-3 line-clamp-3 drop-shadow-xl">{movie.title}</h3>
                 <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-widest">
                     <span className="px-2.5 py-1 bg-white/5 border border-white/10 text-white/60 rounded-full backdrop-blur-md">{movie.year}</span>
-                    <span className="px-2.5 py-1 bg-white/5 border border-white/10 text-white/60 rounded-full backdrop-blur-md">{movie.genres[0]}</span>
+                    {movie.genres?.[0] && (
+                        <span className="px-2.5 py-1 bg-white/5 border border-white/10 text-white/60 rounded-full backdrop-blur-md">{movie.genres[0]}</span>
+                    )}
                     <span className="px-2.5 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-full flex items-center gap-1.5 backdrop-blur-md shadow-lg shadow-orange-500/10">
                         <Star size={10} className="fill-orange-500" /> {movie.imdb}
                     </span>

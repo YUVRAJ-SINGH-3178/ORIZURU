@@ -90,21 +90,29 @@ export function useDiscovery({
         }
     }, [onThemeChange]);
 
+    const isFiltering = Boolean(filters.genre || filters.contentType || filters.minYear || filters.minRating || filters.language);
+
     // Filtering Logic
     const displayMovies = useMemo(() => {
-        let list = showAllMovies ? allMovies : initialMovies;
-        if (!list) return [];
+        // Automatically search full library if search or filters are active
+        let list = (showAllMovies || searchQuery || isFiltering) ? (allMovies || []) : (initialMovies || []);
+
+        if (!list || list.length === 0) return [];
 
         if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            list = list.filter(m =>
-                m.title.toLowerCase().includes(q) ||
-                m.genres.some(g => g.toLowerCase().includes(q))
-            );
+            const q = searchQuery.toLowerCase().trim();
+            if (q) {
+                list = list.filter(m =>
+                    (m.title && m.title.toLowerCase().includes(q)) ||
+                    (m.originalTitle && m.originalTitle.toLowerCase().includes(q)) ||
+                    (m.synopsis && m.synopsis.toLowerCase().includes(q)) ||
+                    (m.genres && m.genres.some(g => g.toLowerCase().includes(q)))
+                );
+            }
         }
 
         if (filters.genre) {
-            list = list.filter(m => m.genres.includes(filters.genre));
+            list = list.filter(m => m.genres && m.genres.includes(filters.genre));
         }
 
         if (filters.contentType) {
@@ -112,26 +120,26 @@ export function useDiscovery({
         }
 
         if (filters.minYear) {
-            list = list.filter(m => parseInt(m.year) >= parseInt(filters.minYear));
+            list = list.filter(m => m.year && parseInt(m.year) >= parseInt(filters.minYear));
         }
 
         if (filters.minRating) {
-            list = list.filter(m => parseFloat(m.imdb) >= parseFloat(filters.minRating));
+            list = list.filter(m => m.imdb && parseFloat(m.imdb) >= parseFloat(filters.minRating));
         }
 
         if (filters.language) {
             list = list.filter(m => m.language === filters.language);
         }
 
-        return list;
-    }, [showAllMovies, allMovies, initialMovies, searchQuery, filters]);
+        return list.slice(0, 300);
+    }, [showAllMovies, allMovies, initialMovies, searchQuery, filters, isFiltering]);
 
-    // Simulate loading
+    // Handle initial loading only
     useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => setIsLoading(false), 800);
-        return () => clearTimeout(timer);
-    }, [initialMovies, filters, searchQuery, showAllMovies]);
+        if (initialMovies?.length > 0) {
+            setIsLoading(false);
+        }
+    }, [initialMovies]);
 
     const handleRefreshClick = useCallback(async (onRefresh) => {
         setIsRefreshing(true);
@@ -169,6 +177,7 @@ export function useDiscovery({
         displayMovies,
         handleRefreshClick,
         clearFilters,
+        isFiltering,
         newsletterEmail, setNewsletterEmail,
         newsletterSubmitted, setNewsletterSubmitted,
         showNewsletterModal, setShowNewsletterModal,

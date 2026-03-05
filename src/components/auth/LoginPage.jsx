@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, CheckCircle, Eye, Check, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Eye, Check, Loader2, ArrowLeft } from "lucide-react";
 
 /**
  * Enhanced Login Page with Supabase Auth
  */
-const LoginPage = ({ onLogin }) => {
+const LoginPage = ({ onAuthSuccess, onBack }) => {
     const [email, setEmail] = useState("");
     const [pass, setPass] = useState("");
     const [name, setName] = useState("");
@@ -57,7 +57,7 @@ const LoginPage = ({ onLogin }) => {
                 if (data?.session) {
                     setAuthStep("Setting up your profile...");
                     await new Promise((r) => setTimeout(r, 500));
-                    onLogin(
+                    onAuthSuccess(
                         {
                             id: data.user.id,
                             name: name.trim(),
@@ -90,7 +90,7 @@ const LoginPage = ({ onLogin }) => {
                     .single();
                 setAuthStep("Initializing engine...");
                 await new Promise((r) => setTimeout(r, 400));
-                onLogin(
+                onAuthSuccess(
                     {
                         id: data.user.id,
                         name: profile?.name || data.user.email.split("@")[0],
@@ -128,6 +128,17 @@ const LoginPage = ({ onLogin }) => {
         <div className="min-h-screen w-full flex items-center justify-center p-6 bg-transparent relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(217,119,54,0.16),transparent_45%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_75%,_rgba(111,123,94,0.14),transparent_45%)]" />
+
+            {/* Back Button */}
+            <motion.button
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={onBack}
+                className="absolute top-8 left-8 p-3 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all z-20 group"
+            >
+                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            </motion.button>
+
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -261,8 +272,8 @@ const LoginPage = ({ onLogin }) => {
                                     <div
                                         onClick={() => setRememberMe(!rememberMe)}
                                         className={`w-5 h-5 rounded-md border transition-all flex items-center justify-center ${rememberMe
-                                                ? "bg-orange-500 border-orange-500 shadow-lg shadow-orange-500/30"
-                                                : "border-white/20 group-hover:border-white/40"
+                                            ? "bg-orange-500 border-orange-500 shadow-lg shadow-orange-500/30"
+                                            : "border-white/20 group-hover:border-white/40"
                                             }`}
                                     >
                                         {rememberMe && <Check size={14} />}

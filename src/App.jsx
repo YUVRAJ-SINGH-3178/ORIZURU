@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 
 // Components
@@ -34,6 +34,9 @@ const App = () => {
   const [allMovies, setAllMovies] = useState([]);
   const [isInitializing, setIsInitializing] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [movieCount, setMovieCount] = useState(0);
+
+  const initRef = useRef(false);
 
   // --- DISCOVERY CONFIG ---
   const [recMode, setRecMode] = useState(null);
@@ -53,12 +56,16 @@ const App = () => {
 
   // --- INITIALIZATION ---
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
     const initData = async () => {
       try {
         setIsInitializing(true);
         // Step 1: Initialize local movie database
-        await movieDatabase.initialize((progress) => {
-          setLoadingProgress(progress * 100);
+        await movieDatabase.initialize((progress, count) => {
+          setLoadingProgress(Math.floor(progress));
+          setMovieCount(count);
         });
 
         // Step 2: Fetch all titles for the catalog
@@ -66,12 +73,18 @@ const App = () => {
         setAllMovies(titles);
 
         // Step 3: Set initial discovery set (Trending)
-        const trending = titles.filter(m => m.imdb > 8.0).slice(0, 50);
-        setMovies(trending);
+        const trending = titles
+          .filter(m => parseFloat(m.imdb) >= 7.5)
+          .sort((a, b) => b.popularity - a.popularity)
+          .slice(0, 40);
+
+        setMovies(trending.length > 0 ? trending : titles.slice(0, 40));
         setRecMode("trending");
+
+        console.log("App initialized with", titles.length, "titles.");
       } catch (err) {
         console.error("Initialization Failed:", err);
-        addToast("Initialization error. Please refresh.", "error");
+        addToast("Initialization error. Check console.", "error");
       } finally {
         setTimeout(() => setIsInitializing(false), 800);
       }
@@ -100,24 +113,28 @@ const App = () => {
     addToast("Signed out successfully.", "info");
   }, [addToast]);
 
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = useCallback(async (forcedMode = null) => {
+    const activeMode = forcedMode || recMode;
     // Generate new picks based on current mode
-    const baseline = allMovies.filter(m => !watchHistory.some(h => h.id === m.id));
+    const watchedIds = new Set(watchHistory.map(m => m.id));
     let newPicks = [];
 
-    if (recMode === "trending") {
-      newPicks = baseline.sort(() => 0.5 - Math.random()).slice(0, 30);
-    } else if (recMode === "quiz" && user.vectors) {
-      newPicks = scoringEngine.recommend(baseline, user.vectors).slice(0, 30);
-    } else if (recMode === "genre" && selectedGenres.length) {
-      newPicks = baseline.filter(m => m.genres.some(g => selectedGenres.includes(g))).slice(0, 30);
-    } else if (recMode === "similar" && similarSource) {
-      newPicks = baseline.filter(m => m.genres.some(g => similarSource.genres.includes(g)) && m.id !== similarSource.id).slice(0, 30);
+    if (activeMode === "trending") {
+      newPicks = allMovies
+        .filter(m => !watchedIds.has(m.id))
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 40);
+    } else if (activeMode === "quiz" && user?.vectors) {
+      newPicks = scoringEngine.recommend(allMovies, user.vectors, 40, watchHistory, watchedIds);
+    } else if (activeMode === "genre" && selectedGenres.length) {
+      newPicks = scoringEngine.getRecommendationsByGenres(selectedGenres, allMovies, 40, watchedIds);
+    } else if (activeMode === "similar" && similarSource) {
+      newPicks = scoringEngine.getSimilarMovies(similarSource, allMovies, 40, watchedIds);
     } else {
-      newPicks = baseline.slice(0, 30);
+      newPicks = allMovies.filter(m => !watchedIds.has(m.id)).slice(0, 40);
     }
 
-    setMovies(newPicks);
+    setMovies(newPicks.length > 0 ? newPicks : allMovies.slice(0, 40));
   }, [allMovies, recMode, user, selectedGenres, similarSource, watchHistory]);
 
   const toggleWatchlist = useCallback((movie) => {
@@ -146,7 +163,7 @@ const App = () => {
   }, [addToast]);
 
   // --- RENDER ---
-  if (isInitializing) return <LoadingScreen progress={loadingProgress} />;
+  if (isInitializing) return <LoadingScreen progress={loadingProgress} movieCount={movieCount} />;
 
   return (
     <div className="min-h-screen bg-[#020308] text-white selection:bg-orange-500 selection:text-white overflow-x-hidden font-outfit">
@@ -165,13 +182,21 @@ const App = () => {
               <RecommendationModes
                 onModeSelect={(mode, data) => {
                   setRecMode(mode);
-                  if (mode === "quiz") setUser(prev => ({ ...prev, vectors: data }));
+                  if (mode === "quiz") {
+                    setUser(prev => ({ ...prev, vectors: data }));
+                  }
                   if (mode === "genre") setSelectedGenres(data);
                   if (mode === "similar") setSimilarSource(data);
-                  handleRefresh();
+
+                  // Force refresh with new mode immediately to avoid stale state
+                  handleRefresh(mode);
                 }}
-                onSkip={() => { setRecMode("trending"); handleRefresh(); }}
-                userName={user.name}
+                onSkip={() => {
+                  setRecMode("trending");
+                  handleRefresh("trending");
+                }}
+                userName={user?.name || "Member"}
+                allMovies={allMovies}
               />
             ) : (
               <Discovery

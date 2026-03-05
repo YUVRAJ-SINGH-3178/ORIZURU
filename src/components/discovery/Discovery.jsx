@@ -17,6 +17,10 @@ import SkeletonCard from "../common/SkeletonCard";
 import { useDiscovery } from "../../hooks/useDiscovery";
 import { useToast } from "../../context/ToastContext";
 
+// Services
+import { scoringEngine } from "../../services/recommendations";
+import { movieDatabase } from "../../services/movieDatabase";
+
 /**
  * Main Discovery Interface
  */
@@ -80,11 +84,20 @@ const Discovery = ({
     });
 
     const getRecommendationTitle = () => {
-        if (showAllMovies) return "All Content Library";
-        if (searchQuery) return `Search: "${searchQuery}"`;
-        if (recMode === "similar") return `Similar to ${similarSource?.title || "selected"}`;
+        if (searchQuery) return `Results for "${searchQuery}"`;
+
+        const filterParts = [];
+        if (filters.genre) filterParts.push(filters.genre);
+        if (filters.contentType) filterParts.push(filters.contentType === 'movie' ? 'Movies' : filters.contentType === 'series' ? 'TV Series' : 'Anime');
+        if (filters.minYear) filterParts.push(`${filters.minYear}+`);
+        if (filters.minRating) filterParts.push(`${filters.minRating}+ stars`);
+
+        if (filterParts.length > 0) return `Filtered: ${filterParts.join(" • ")}`;
+
+        if (showAllMovies) return "Full Library Catalog";
+        if (recMode === "similar") return `Similar to ${similarSource?.title || "selection"}`;
         if (recMode === "genre") return "Genre-based Top Picks";
-        if (recMode === "quiz") return "Your AI Vector Picks";
+        if (recMode === "quiz") return "AI Vector Picks";
         if (recMode === "trending") return "Trending Now";
         return "Universal Discovery";
     };
@@ -127,9 +140,16 @@ const Discovery = ({
 
     const genres = useMemo(() => {
         const s = new Set();
-        allMovies.forEach(m => m.genres.forEach(g => s.add(g)));
+        allMovies.forEach(m => (m.genres || []).forEach(g => s.add(g)));
         return Array.from(s).sort();
     }, [allMovies]);
+
+    // Optimize similar movies search when a movie is selected
+    const selectedSimilarMovies = useMemo(() => {
+        if (!selected) return [];
+        // Use the intelligence engine for similar movies
+        return scoringEngine.getSimilarMovies(selected, allMovies, 12, new Set(watchHistory.map(h => h.id)));
+    }, [selected, allMovies, watchHistory]);
 
     return (
         <div className="min-h-screen bg-transparent flex flex-col">
@@ -271,7 +291,7 @@ const Discovery = ({
                 onSubmit={(email) => {
                     setNewsletterSubmitted(true);
                     storage.set("newsletterEmail", email);
-                    addToast("Subscribed! 🎬", "success");
+                    addToast("Subscribed! \ud83c\udfac", "success");
                 }}
             />
             <ShareWatchlistModal
@@ -298,7 +318,7 @@ const Discovery = ({
                         isWatched={watchHistory.some(h => h.id === selected.id)}
                         onMarkWatched={onMarkWatched}
                         onRemoveWatched={onRemoveWatched}
-                        similarMovies={allMovies.filter(m => m.id !== selected.id && m.genres.some(g => selected.genres.includes(g))).slice(0, 10)}
+                        similarMovies={selectedSimilarMovies}
                         onSelectMovie={setSelected}
                     />
                 )}

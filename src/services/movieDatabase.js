@@ -1,104 +1,9 @@
 import tmdbService from "./tmdb";
 
-// Countries to fetch movies from (worldwide coverage - expanded)
+// Optimized Countries list - Focus on major markets to prevent API overload
 const COUNTRIES = [
-  // Americas
-  "US",
-  "CA",
-  "MX",
-  "BR",
-  "AR",
-  "CO",
-  "CL",
-  "PE",
-  "VE",
-  "CU",
-  "PR",
-  "EC",
-  "UY",
-  // Europe
-  "GB",
-  "FR",
-  "DE",
-  "IT",
-  "ES",
-  "PT",
-  "NL",
-  "BE",
-  "AT",
-  "CH",
-  "SE",
-  "DK",
-  "NO",
-  "FI",
-  "PL",
-  "CZ",
-  "RU",
-  "UA",
-  "RO",
-  "HU",
-  "GR",
-  "IE",
-  "IS",
-  "LU",
-  "HR",
-  "RS",
-  "BG",
-  "SK",
-  // Asia
-  "JP",
-  "KR",
-  "CN",
-  "IN",
-  "TH",
-  "ID",
-  "PH",
-  "VN",
-  "MY",
-  "SG",
-  "HK",
-  "TW",
-  "PK",
-  "BD",
-  "NP",
-  "LK",
-  "MM",
-  "KH",
-  "LA",
-  "MN",
-  "KZ",
-  "UZ",
-  "AZ",
-  "GE",
-  "AM",
-  // Middle East
-  "IL",
-  "TR",
-  "IR",
-  "SA",
-  "AE",
-  "QA",
-  "KW",
-  "LB",
-  "JO",
-  "EG",
-  // Africa
-  "ZA",
-  "NG",
-  "KE",
-  "MA",
-  "GH",
-  "ET",
-  "TZ",
-  "UG",
-  "SN",
-  "CI",
-  "CM",
-  "DZ",
-  "TN",
-  // Oceania
-  "AU",
-  "NZ",
+  "US", "GB", "FR", "DE", "IT", "ES", "JP", "KR", "CN", "IN",
+  "MX", "BR", "CA", "AU", "RU", "SE", "NO", "FI", "HK", "TW"
 ];
 
 // Genre IDs for variety (Movies) - all genres
@@ -113,12 +18,7 @@ const TV_GENRES = [
   10767,
 ];
 
-// Decades to cover - expanded
 const DECADES = [
-  { start: 1940, end: 1949 },
-  { start: 1950, end: 1959 },
-  { start: 1960, end: 1969 },
-  { start: 1970, end: 1979 },
   { start: 1980, end: 1989 },
   { start: 1990, end: 1999 },
   { start: 2000, end: 2009 },
@@ -126,55 +26,29 @@ const DECADES = [
   { start: 2020, end: 2026 },
 ];
 
-// Languages for international content
-const LANGUAGES = [
-  "hi",
-  "ta",
-  "te",
-  "ml",
-  "bn",
-  "mr",
-  "pa",
-  "kn", // Indian languages
-  "ko",
-  "ja",
-  "zh",
-  "th",
-  "vi",
-  "id",
-  "ms", // East/Southeast Asian
-  "es",
-  "pt",
-  "fr",
-  "de",
-  "it",
-  "ru",
-  "pl",
-  "tr",
-  "ar",
-  "fa", // Other major languages
-];
+// Optimized Languages list
+const LANGUAGES = ["en", "hi", "ko", "ja", "zh", "es", "fr", "de", "it", "ru", "ta", "te"];
 
 const PAGE_LIMITS = {
-  popularMovies: 400,
-  topRatedMovies: 400,
-  nowPlaying: 80,
-  upcoming: 80,
-  moviesByGenre: 60,
-  moviesByCountry: 40,
-  moviesByLanguage: 40,
-  moviesByDecade: 40,
-  popularTV: 350,
-  topRatedTV: 350,
-  animeByRegion: 200,
-  animeMoviesByRegion: 120,
-  kDrama: 150,
-  cDrama: 140,
-  regionalTV: 120,
-  tvByGenre: 60,
-  onAirTV: 200,
-  voteCountMovies: 150,
-  highRatedMovies: 100,
+  popularMovies: 30,
+  topRatedMovies: 30,
+  nowPlaying: 15,
+  upcoming: 15,
+  moviesByGenre: 10,
+  moviesByCountry: 3,
+  moviesByLanguage: 5,
+  moviesByDecade: 5,
+  popularTV: 20,
+  topRatedTV: 20,
+  animeByRegion: 25,
+  animeMoviesByRegion: 20,
+  kDrama: 30,
+  cDrama: 15,
+  regionalTV: 15,
+  tvByGenre: 10,
+  onAirTV: 15,
+  voteCountMovies: 25,
+  highRatedMovies: 20,
 };
 
 const QUICK_LIMITS = {
@@ -198,6 +72,11 @@ class MovieDatabase {
     this.isLoading = false;
     this.loadProgress = 0;
     this.totalToLoad = 0;
+  }
+
+  // Initialize local movie database (alias for loadMovies)
+  async initialize(onProgress) {
+    return this.loadMovies(onProgress);
   }
 
   // Load a comprehensive movie database (10,000+ titles)
@@ -452,37 +331,43 @@ class MovieDatabase {
       // console.log(`Loading ${fetchPromises.length} API requests for a massive catalog...`);
 
       // Batch fetch with rate limiting
-      const batchSize = 25;
+      const batchSize = 10;
       for (let i = 0; i < fetchPromises.length; i += batchSize) {
         const batch = fetchPromises.slice(i, i + batchSize);
-        const results = await Promise.all(batch);
+        try {
+          const results = await Promise.all(batch);
 
-        results.forEach((result) => {
-          const { type, results: items } = result;
-          items.forEach((item) => {
-            if (item && item.id) {
-              if (type === "movie" && !this.movies.has(item.id)) {
-                const transformed = tmdbService.transformMovie(item);
-                if (transformed.poster && transformed.year) {
-                  this.movies.set(item.id, transformed);
-                }
-              } else if (type === "tv" && !this.tvShows.has(item.id)) {
-                const transformed = tmdbService.transformTVShow(item);
-                if (transformed.poster && transformed.year) {
-                  this.tvShows.set(item.id, transformed);
+          results.forEach((result) => {
+            if (!result) return;
+            const { type, results: items } = result;
+            if (!items) return;
+            items.forEach((item) => {
+              if (item && item.id) {
+                if (type === "movie" && !this.movies.has(item.id)) {
+                  const transformed = tmdbService.transformMovie(item);
+                  if (transformed.poster && transformed.year) {
+                    this.movies.set(item.id, transformed);
+                  }
+                } else if (type === "tv" && !this.tvShows.has(item.id)) {
+                  const transformed = tmdbService.transformTVShow(item);
+                  if (transformed.poster && transformed.year) {
+                    this.tvShows.set(item.id, transformed);
+                  }
                 }
               }
-            }
+            });
           });
-        });
+        } catch (batchErr) {
+          console.warn("Batch failed partly:", batchErr);
+        }
 
         loaded += batch.length;
         this.loadProgress = (loaded / this.totalToLoad) * 100;
         onProgress(this.loadProgress, this.movies.size + this.tvShows.size);
 
-        // Small delay to avoid rate limiting
+        // More generous delay to avoid 429s (TMDB is sensitive)
         if (i + batchSize < fetchPromises.length) {
-          await new Promise((resolve) => setTimeout(resolve, 80));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
     } catch (error) {
@@ -698,6 +583,11 @@ class MovieDatabase {
       ...Array.from(this.movies.values()),
       ...Array.from(this.tvShows.values()),
     ];
+  }
+
+  // ALIAS for catalog fetching
+  async getAllTitles() {
+    return this.getAllMovies();
   }
 
   // Get only movies

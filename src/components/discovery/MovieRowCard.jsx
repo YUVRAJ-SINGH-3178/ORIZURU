@@ -68,6 +68,11 @@ const MovieRowCard = ({
                                 {movie.year}
                             </span>
                         )}
+                        {movie.isGem && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-black font-black animate-pulse">
+                                💎 GEM
+                            </span>
+                        )}
                         {movie.genres?.slice(0, 3).map((g) => (
                             <span
                                 key={g}
