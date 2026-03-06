@@ -98,6 +98,7 @@ export const scoringEngine = {
   diversifyResults: (items, count) => {
     const sorted = items.sort((a, b) => b.matchScore - a.matchScore);
     const selected = [];
+    const rejected = [];
     const genreTracker = {};
     const langTracker = {};
 
@@ -116,7 +117,16 @@ export const scoringEngine = {
         selected.push(item);
         genreTracker[genre] = gCount + 1;
         langTracker[lang] = lCount + 1;
+      } else {
+        rejected.push(item);
       }
+    }
+
+    // Fill the rest if we didn't reach the exact count (e.g. if the user asked for very specific genres)
+    let i = 0;
+    while (selected.length < count && i < rejected.length) {
+      selected.push(rejected[i]);
+      i++;
     }
 
     return selected;

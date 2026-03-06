@@ -113,8 +113,12 @@ const App = () => {
     addToast("Signed out successfully.", "info");
   }, [addToast]);
 
-  const handleRefresh = useCallback(async (forcedMode = null) => {
+  const handleRefresh = useCallback(async (forcedMode = null, overrideData = null) => {
     const activeMode = forcedMode || recMode;
+    const activeUser = (activeMode === "quiz" && overrideData) ? { ...user, vectors: overrideData } : user;
+    const activeGenres = (activeMode === "genre" && overrideData) ? overrideData : selectedGenres;
+    const activeSimilar = (activeMode === "similar" && overrideData) ? overrideData : similarSource;
+
     // Generate new picks based on current mode
     const watchedIds = new Set(watchHistory.map(m => m.id));
     let newPicks = [];
@@ -124,12 +128,12 @@ const App = () => {
         .filter(m => !watchedIds.has(m.id))
         .sort(() => 0.5 - Math.random())
         .slice(0, 40);
-    } else if (activeMode === "quiz" && user?.vectors) {
-      newPicks = scoringEngine.recommend(allMovies, user.vectors, 40, watchHistory, watchedIds);
-    } else if (activeMode === "genre" && selectedGenres.length) {
-      newPicks = scoringEngine.getRecommendationsByGenres(selectedGenres, allMovies, 40, watchedIds);
-    } else if (activeMode === "similar" && similarSource) {
-      newPicks = scoringEngine.getSimilarMovies(similarSource, allMovies, 40, watchedIds);
+    } else if (activeMode === "quiz" && activeUser?.vectors) {
+      newPicks = scoringEngine.recommend(allMovies, activeUser.vectors, 40, watchHistory, watchedIds);
+    } else if (activeMode === "genre" && activeGenres.length) {
+      newPicks = scoringEngine.getRecommendationsByGenres(activeGenres, allMovies, 40, watchedIds);
+    } else if (activeMode === "similar" && activeSimilar) {
+      newPicks = scoringEngine.getSimilarMovies(activeSimilar, allMovies, 40, watchedIds);
     } else {
       newPicks = allMovies.filter(m => !watchedIds.has(m.id)).slice(0, 40);
     }
@@ -189,7 +193,7 @@ const App = () => {
                   if (mode === "similar") setSimilarSource(data);
 
                   // Force refresh with new mode immediately to avoid stale state
-                  handleRefresh(mode);
+                  handleRefresh(mode, data);
                 }}
                 onSkip={() => {
                   setRecMode("trending");
