@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/orizuru-logo-final.png" alt="ORIZURU Logo" width="120" height="120" />
+  <img src="public/orizuru-logo-2d.png" alt="ORIZURU Logo" width="120" height="120" />
   <h1>ORIZURU | Cinema Reimagined</h1>
   <p><strong>Next-Generation AI-Powered Movie & TV Series Discovery Platform</strong></p>
 </div>
